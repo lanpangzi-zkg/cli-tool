@@ -1,0 +1,12 @@
+.btn-add-box {
+    text-align: center;
+    margin: 10px 0 25px;
+}
+
+.ant-row.ant-form-item {
+    margin-bottom: 0;
+}
+.panel-header .btn-delete {
+    float: right;
+    margin: 5px;
+}

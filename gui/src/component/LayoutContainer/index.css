@@ -1,0 +1,21 @@
+.layout-container {
+    cursor: pointer;
+    min-height: 100px;
+    border: 1px dashed #ccc;
+    margin-bottom: 10px;
+    padding: 5px 24px;
+    font-size: 0;
+}
+.layout-container .ant-form {
+    text-align: left;
+}
+.empty-tips {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border: 2px dashed #ccc;
+    line-height: 50px;
+    padding: 0 5px;
+    margin-left: -56px;
+    margin-top: -27px;
+}

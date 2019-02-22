@@ -1,0 +1,13 @@
+.main-container {
+	position: relative;
+	margin: 10px 0;
+	background-color: #d2d2d2;
+	min-height: 300px;
+	border: 1px dashed #1890ff;
+	overflow: hidden;
+}
+.ant-form:after {
+	content: '';
+	display: table;
+	clear: both;
+}

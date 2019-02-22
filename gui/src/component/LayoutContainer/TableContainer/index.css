@@ -1,0 +1,7 @@
+.ant-table {
+    cursor: pointer;
+}
+.table-container table .ant-table-thead th {
+    padding-top: 9px;
+    padding-bottom: 9px; 
+}
