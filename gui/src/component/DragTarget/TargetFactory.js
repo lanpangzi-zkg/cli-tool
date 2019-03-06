@@ -1,25 +1,38 @@
 import React, { PureComponent, Fragment } from 'react';
+import { Divider } from 'antd';
 import Dragable from '../Core/Dragable';
-import Config from './Config';
+import dargConfig from '../configs/dragConfig';
 
 class TargetFactory extends PureComponent {
+	renderContentByType(targetConfigs, type = '') {
+		return (
+			<Fragment key={`${type}`}>
+				{
+					type ? (<Divider key={`${type}`}>{type}</Divider>) : null
+				}
+				{
+					targetConfigs.map((config, index) => {
+						return (
+							<Dragable {...config} key={`drag-${config.ch}-${index}`} />
+						);
+					})
+				}
+			</Fragment>
+		);
+	}
 	render() {
-		const { tabType = 'form' } = this.props;
-		const targetConfigArr = Config[tabType];
-		if (Array.isArray(targetConfigArr)) {
-			return (
-				<Fragment>
-					{
-						targetConfigArr.map((config, index) => {
-							return (
-								<Dragable {...config} key={`drag-${index}`} />
-							);
-						})
-					}
-				</Fragment>
-			);
+		const { tabType = 'component' } = this.props;
+		const targetConfigs = dargConfig[tabType];
+		if (Array.isArray(targetConfigs)) {
+			return this.renderContentByType(targetConfigs);
+		} else {
+			return Object.keys(targetConfigs).map((k) => {
+				if(Array.isArray(targetConfigs[k])) {
+					return this.renderContentByType(targetConfigs[k], k);
+				}
+				return null;
+			});
 		}
-		return null;
 	}
 }
 

@@ -1,22 +1,21 @@
-.drop-container {
+.form-drop-container {
     position: relative;
     display: inline-block;
-    min-height: 65px;
-    border: 1px dashed #c7c8ca;
+    min-height: 42px;
+    outline: 1px dashed #c7c8ca;
     text-align: center;
 }
-.drop-container>div {
+.form-drop-container>div {
     width: 100%;
 }
-.drop-container:hover {
+.form-drop-container:hover {
     border-color: #1890ff;
 }
-.drop-container:hover .icon-operation {
+.form-drop-container:hover>.icon-operation {
     display: block;
 }
-.container .drop-container .icon-operation {
-    left: 2px;
-    right: initial;
-    top: 6px;
+.container .form-drop-container>.icon-operation {
+    right: 0;
+    top: 0;
     display: none;
 }

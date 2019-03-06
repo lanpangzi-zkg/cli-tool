@@ -1,0 +1,9 @@
+.tips-box {
+    margin: 15px 0;
+    font-size: 80%;
+    padding: 0 5px;
+    color: #fb7c6d;
+}
+.tips-box .anticon {
+    margin-right: 5px;
+}

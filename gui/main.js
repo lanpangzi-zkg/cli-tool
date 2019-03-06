@@ -3,14 +3,15 @@ const {app, BrowserWindow, ipcMain} = require('electron');
 const ejs = require('ejs');
 const path = require('path');
 const fs = require('fs-extra');
+const beautify = require('js-beautify').js;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let mainWindow
+let mainWindow;
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600})
+  mainWindow = new BrowserWindow({width: 1200, height: 750})
 
   // and load the index.html of the app.
   // mainWindow.loadFile('index.html')
@@ -18,7 +19,7 @@ function createWindow () {
   // mainWindow.loadURL('http://localhost:3000/')
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -52,23 +53,33 @@ app.on('activate', function () {
 })
 
 ipcMain.on('asynchronous-message', function (event, arg) {
-  const pageParams = JSON.parse(arg);
-  const { pageName, layoutConfig } = pageParams;
-  const filePath = path.resolve(__dirname, 'template/basicPage.ejs');
-  ejs.renderFile(filePath, { pageName, layoutConfig }, function (err, data) {
-    const msgObj = {
-      code: 1,
-      info: '生成页面成功',
-    };
-    if(err) {
-      msgObj.code = 0;
-      msgObj.info = '页面生成失败:' + JSON.stringify(err);
-      event.sender.send('asynchronous-reply', JSON.stringify(msgObj));
-    } else {
-      fs.ensureDir(`${process.cwd()}/sourceCode`);
-      const codeSourcePath = path.resolve(process.cwd(), `sourceCode/${pageName}.js`);
-      fs.writeFileSync(codeSourcePath, data);
-      event.sender.send('asynchronous-reply', JSON.stringify(msgObj));
-    }
-  });
+	const pageParams = JSON.parse(arg);
+	const { pageName, layoutConfig } = pageParams;
+	const filePath = path.resolve(__dirname, 'template/basicPage.ejs');
+	const getInitialValue = require('./template/function/getInitialValue');
+	const renderItemComponent = require('./template/function/renderItemComponent');
+	const renderButton = require('./template/function/renderButton');
+	ejs.renderFile(filePath, {
+			pageName,
+			layoutConfig,
+			renderButton,
+			getInitialValue,
+			renderItemComponent,
+		}, function (err, data) {
+			const msgObj = {
+				code: 1,
+				info: '生成页面成功',
+			};
+			if(err) {
+				console.log(err);
+				msgObj.code = 0;
+				msgObj.info = '页面生成失败:' + JSON.stringify(err);
+				event.sender.send('asynchronous-reply', JSON.stringify(msgObj));
+			} else {
+				fs.ensureDir(`${process.cwd()}/sourceCode`);
+				const codeSourcePath = path.resolve(process.cwd(), `sourceCode/${pageName}.js`);
+				fs.writeFileSync(codeSourcePath, data);
+				event.sender.send('asynchronous-reply', JSON.stringify(msgObj));
+			}
+		});
 });

@@ -1,7 +1,9 @@
 import React, { PureComponent, Fragment } from 'react';
-import { FORM_CONTAINER, TABLE_CONTAINER } from '../common/Constants';
+import { FORM_CONTAINER, TABLE_CONTAINER, EMPTY_CONTAINER, BOX_CONTINAER } from '../common/Constants';
 import FormContainer from './FormContainer';
 import TableContainer from './TableContainer';
+import BoxContainer from './BoxContainer';
+import EmptyContainer from './EmptyContainer';
 import './index.css';
 
 class LayoutContainer extends PureComponent {
@@ -16,6 +18,10 @@ class LayoutContainer extends PureComponent {
                     return (<FormContainer {...transferProps} />);
                 } else if (type === TABLE_CONTAINER) {
                     return (<TableContainer {...transferProps} />);
+                } else if (type === EMPTY_CONTAINER) {
+                    return (<EmptyContainer {...transferProps} />);
+                } else if (type === BOX_CONTINAER) {
+                    return (<BoxContainer {...transferProps} />);
                 }
                 return null;
             });

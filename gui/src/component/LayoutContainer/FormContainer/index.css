@@ -1,14 +1,13 @@
 .form-container {
     font-size: 0;
-}
-.form-container .ant-btn:not(:first-child) {
-    margin-left: 10px;
+    margin-bottom: 24px;
 }
 .form-container .inner-box {
-    min-height: 100px;
-    padding: 0 24px;
+    min-height: 120px;
+    padding: 24px;
     background-color: #fff;
 }
 .form-container .ant-form {
     text-align: left;
+    padding: 0 24px;
 }

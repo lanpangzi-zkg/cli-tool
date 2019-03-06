@@ -37,17 +37,33 @@ class TableContainer extends PureComponent {
         const { layoutIndex, onUpdateLayoutConfig } = this.props;
         onUpdateLayoutConfig({ layoutIndex, deleteFlag: true });
     }
+    getMockDataSource(columns, dataSize) {
+        const ds = [];
+        for (let i = 0; i < dataSize; i++) {
+            const dsItem = {};
+            columns.forEach((item) => {
+                Object.keys(item).forEach((k) => {
+                    dsItem[item.dataIndex] = `${item.dataIndex}-${i}`;
+                });
+            });
+            ds.push(dsItem);
+        }
+        return ds;
+    }
     render() {
         const { visible } = this.state;
         const { configs = {} } = this.props;
-        const { pagination = false, rowSelection = null } = configs;
+        const { pagination = false, rowSelection = null, columns, mockData } = configs;
+        const copyColumns = columns.slice();
+        const mockDataNum = (/^\d+$/).test(mockData) ? +mockData : 0;
         return (
             <div
                 className="table-container container"
             >
                 <Table
-                    columns={configs.columns}
+                    columns={copyColumns}
                     bordered
+                    dataSource={this.getMockDataSource(columns, mockDataNum)}
                     pagination={pagination}
                     rowSelection={rowSelection}
                     onClick={this.onShowEditTable}
@@ -56,10 +72,10 @@ class TableContainer extends PureComponent {
                     visible={visible}
                     configs={configs}
                     onClose={this.onClose}
+                    onDeleteContainer={this.onDeleteContainer}
                     onUpdateConfigs={this.onUpdateConfigs}
                 />
                 <Icon type="form" className="icon-operation" onClick={this.onShowEditTable} />
-                <Icon type="close-circle" className="icon-operation" onClick={this.onDeleteContainer} />
             </div>
         );
     }

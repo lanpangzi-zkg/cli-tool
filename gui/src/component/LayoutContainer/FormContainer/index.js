@@ -1,6 +1,7 @@
 import React, { PureComponent, Fragment } from 'react';
 import { Form, Row, Button, message, Icon } from 'antd';
 import FormEdit from '../../EditDrawer/FormEdit';
+import getCellColSpan from '../../common/CellUtil';
 import FormItemContainer from '../FormItemContainer';
 import './index.css';
 
@@ -18,6 +19,7 @@ class FormContainer extends PureComponent {
         this.onCloseEditForm = this.onCloseEditForm.bind(this);
         this.renderFormItemContainer = this.renderFormItemContainer.bind(this);
         this.onAddRow = this.onAddRow.bind(this);
+        this.onAddRowCell = this.onAddRowCell.bind(this);
         this.onDeleteRow = this.onDeleteRow.bind(this);
         this.onDeleteContainer = this.onDeleteContainer.bind(this);
         this.onDeleteFormItemContainer = this.onDeleteFormItemContainer.bind(this);
@@ -29,6 +31,18 @@ class FormContainer extends PureComponent {
             visible: true,
         });
     }
+    addNewFormItem(formItemArr, layoutColumnNum, colSpanArr) {
+        if (formItemArr.length < layoutColumnNum) {
+            for(let i = formItemArr.length; i < layoutColumnNum; i++) {
+                formItemArr.push({
+                    colIndex: this.colIndexStart + i,
+                    colSpan: colSpanArr[i],
+                    originSpan: 1,
+                });
+            }
+        }
+        return formItemArr;
+    }
     onCloseEditForm(configs) {
         const newState = {
             visible: false,
@@ -36,20 +50,11 @@ class FormContainer extends PureComponent {
         const { layoutColumn, colSpanArr } = configs;
         const layoutColumnNum = +layoutColumn;
         if (layoutColumnNum) {
-            const formItemArr = this.state.configs.formItemArr.slice();
-            // 新增一行
-            if (formItemArr.length === 0) {
-                for(let i = 0; i < layoutColumnNum; i++) {
-                    formItemArr.push({
-                        colIndex: this.colIndexStart + i,
-                        colSpan: colSpanArr[i],
-                    });
-                }
-            } else {
-                formItemArr.forEach((item, i) => {
-                    item.colSpan = colSpanArr[i % 3];
-                });
-            }
+            const copyFormItemArr = this.state.configs.formItemArr.slice();
+            const formItemArr = this.addNewFormItem(copyFormItemArr, layoutColumnNum, colSpanArr);
+            formItemArr.forEach((item) => {
+                item.colSpan = getCellColSpan(item.colIndex, item.originSpan, formItemArr, colSpanArr);
+            });
             this.colIndexStart += layoutColumnNum;
             configs.layoutColumn = layoutColumnNum;
             configs.formItemArr = formItemArr;
@@ -57,6 +62,45 @@ class FormContainer extends PureComponent {
         }
         this.setState({
             ...newState
+        });
+    }
+    onAddRowCell() {
+        const { configs } = this.state;
+        const { colSpanArr } = configs;
+        const formItemArr = configs.formItemArr.slice();
+        if (formItemArr.length === 0) {
+            message.warn('请设置容器列数');
+            return;
+        }
+        const rowSpanCount = formItemArr.reduce((total, item, i) => {
+            total += item.colSpan;
+            if (i === formItemArr.length -1) {
+                total %= 24;
+            }
+            return total;
+        }, 0);
+        let colSpanIndex = 0;
+        let total = 0;
+        for (let i = 0; i < colSpanArr.length; i++) {
+            total = total + (+colSpanArr[i]);
+            if (total > rowSpanCount) {
+                colSpanIndex = i;
+                i = colSpanArr.length;
+            }
+        }
+        formItemArr.push({ 
+            colIndex: this.colIndexStart,
+            originSpan: 1,
+            colSpan: colSpanArr[colSpanIndex],
+        });
+        this.colIndexStart += 1;
+        const newConfigs = Object.assign({}, configs);
+        newConfigs.formItemArr = formItemArr;
+        this.setState({
+            configs: newConfigs,
+        }, () => {
+            const { onUpdateLayoutConfig, layoutIndex } = this.props;
+            onUpdateLayoutConfig({ layoutIndex, configs: newConfigs });
         });
     }
     onAddRow() {
@@ -119,16 +163,20 @@ class FormContainer extends PureComponent {
     }
     onUpdateConfigs({ deleteFlag = false, ...values }) {
         const { configs } = this.state;
-        const { formItemArr } = configs;
+        const { formItemArr, colSpanArr } = configs;
         const newConfigs = Object.assign({}, configs);
         const { onUpdateLayoutConfig, layoutIndex } = this.props;
         const newFormItemArr = formItemArr.reduce((arr, item) => {
-            // 删除单元格
+            // 删除单元格内的组件
             if (deleteFlag) {
                 if (values.colIndex !== item.colIndex) {
                     arr.push(Object.assign({}, item));
                 } else {
-                    arr.push({ colIndex: values.colIndex, colSpan: values.colSpan });
+                    arr.push({
+                        colIndex: values.colIndex,
+                        colSpan: values.colSpan,
+                        originSpan: values.originSpan,
+                    });
                 }
             } else {
                 if (values.colIndex === item.colIndex) {
@@ -139,6 +187,13 @@ class FormContainer extends PureComponent {
             }
             return arr;
         }, []);
+        newFormItemArr.forEach((item) => {
+            // 更新跨列
+            if (item.colIndex > values.colIndex) {
+                item.colSpan = getCellColSpan(item.colIndex, item.originSpan,
+                    newFormItemArr, colSpanArr);
+            }
+        });
         newConfigs.formItemArr = newFormItemArr;
         this.setState({
             configs: newConfigs,
@@ -149,14 +204,16 @@ class FormContainer extends PureComponent {
     renderFormItemContainer() {
         const { configs } = this.state;
         const { formItemArr, layoutColumn } = configs;
-        return formItemArr.map(({ colIndex, colSpan }) => {
+        return formItemArr.map(({ colIndex, colSpan, originSpan, cellStyles }) => {
             return (
                 <FormItemContainer
                     key={`ed-${colIndex}`}
                     colIndex={colIndex}
                     {...this.props}
                     colSpan={colSpan}
+                    originSpan={originSpan}
                     layoutColumn={layoutColumn}
+                    cellStyles={cellStyles}
                     onDeleteFormItemContainer={this.onDeleteFormItemContainer}
                     onUpdateConfigs={this.onUpdateConfigs}
                 />
@@ -184,30 +241,23 @@ class FormContainer extends PureComponent {
                             formItemArr.length > 0 ? (
                                 <div style={{
                                     textAlign: 'center',
-                                    margin: '10px 0',
-                                    paddingBottom: '10px',
+                                    marginTop: '10px',
                                     }}
                                 >
                                     <Button
-                                        onClick={this.onAddRow}
+                                        onClick={this.onAddRowCell}
                                     >
-                                        新增一行
-                                    </Button>
-                                    <Button
-                                        onClick={this.onDeleteRow}
-                                        style={{ marginLeft: '8px' }}
-                                    >
-                                        删除一行
+                                        新增单元格
                                     </Button>
                                 </div>
                                 ) : null
                         }
                     </div>
                     <Icon type="form" className="icon-operation" onClick={this.onShowEditForm} />
-                    <Icon type="close-circle" className="icon-operation" onClick={this.onDeleteContainer} />
                 </div>
                 <FormEdit
                     visible={visible}
+                    onDeleteContainer={this.onDeleteContainer}
                     onClose={(configs) => {
                         const { layoutColumn } = configs;
                         this.onCloseEditForm(configs);

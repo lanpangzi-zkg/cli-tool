@@ -2,14 +2,17 @@
  * @desc 页面右侧容器视图
  */
 import React, { PureComponent, Fragment } from 'react';
+import { message, Button } from 'antd';
+import { Service } from '../../annotation';
 import LayoutContainer from '../LayoutContainer';
 import defaultColumns from '../configs/defaultColumns';
-import { FORM_CONTAINER, TABLE_CONTAINER } from '../common/Constants';
+import { FORM_CONTAINER, TABLE_CONTAINER, EMPTY_CONTAINER, BOX_CONTINAER } from '../common/Constants';
 import './index.css';
-import { message, Button } from 'antd';
 
 const clsArr = ['main-container', 'empty-tips'];
+const containerTypeArr = [FORM_CONTAINER, TABLE_CONTAINER, EMPTY_CONTAINER, BOX_CONTINAER];
 
+@Service('AppService')
 class MainContainer extends PureComponent {
 	constructor(props) {
 		super(props);
@@ -20,6 +23,7 @@ class MainContainer extends PureComponent {
 		this.onEdit = this.onEdit.bind(this);
 		this.onUpdateLayoutConfig = this.onUpdateLayoutConfig.bind(this);
 		this.onGeneratePage = this.onGeneratePage.bind(this);
+		this.onPreviewPage = this.onPreviewPage.bind(this);
 		this.layoutIndex = 0;
 	}
 	onUpdateLayoutConfig({ layoutIndex, configs, deleteFlag = false }) {
@@ -61,7 +65,7 @@ class MainContainer extends PureComponent {
 	        if (clsArr.indexOf(cls) > -1) {
 	        	const data = JSON.parse(event.dataTransfer.getData('text/plain'));
 				const { type } = data;
-				if (type === FORM_CONTAINER || type === TABLE_CONTAINER) {
+				if (containerTypeArr.indexOf(type) > -1) {
 					const { layoutConfig } = this.state;
 					const copyLayoytConfig = layoutConfig.slice();
 					const configObj = Object.assign(data, {
@@ -98,11 +102,42 @@ class MainContainer extends PureComponent {
 			pageName,
 			layoutConfig,
 		};
+		
 		this.setState({
 			generateLoading: true,
 		});
-        window.ipc.send('asynchronous-message', JSON.stringify(pageConfig));
-    }
+		this.props.service.generatePage(pageConfig)
+        .then((response) => {
+			const { data } = response;
+			if (data.code === 1) {
+				message.success(data.info);
+				const aLink = document.createElement('a');
+				aLink.href = `./sourceCache/${pageName}.js`;
+				aLink.style.display = 'none';
+				document.body.appendChild(aLink);
+				aLink.click();
+				document.body.removeChild(aLink);
+			} else {
+				message.error(data.info);
+			}
+			this.setState({
+				generateLoading: false,
+			});
+        })
+        .catch((error) => {
+			message.error('请求失败');
+			console.log(error);
+			this.setState({
+				generateLoading: false,
+			});
+        });
+        // window.ipc.send('asynchronous-message', JSON.stringify(pageConfig));
+	}
+	onPreviewPage() {
+		const { onPreviewPage } = this.props;
+		const { layoutConfig } = this.state;
+		onPreviewPage(layoutConfig);
+	}
 	render() {
 		const { layoutConfig, generateLoading } = this.state;
 		return (
@@ -119,6 +154,13 @@ class MainContainer extends PureComponent {
 					loading={generateLoading}
 				>
 					生成页面
+				</Button>
+				<Button
+					type="primary"
+					onClick={this.onPreviewPage}
+					style={{ marginLeft: '5px' }}
+				>
+					预览
 				</Button>
 			</Fragment>
 		);

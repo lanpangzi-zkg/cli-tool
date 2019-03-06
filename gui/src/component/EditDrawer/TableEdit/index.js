@@ -1,18 +1,21 @@
 import React, { PureComponent, Fragment } from 'react';
 import { Button, Card, Drawer, Divider, Collapse, Form, Input, Icon, Select } from 'antd';
+import formItemLayout from '../../configs/layout';
+import handleOperation from '../../common/TableUtil';
+import { TRUE } from '../../common/Constants';
 import './index.css';
 
 const Panel = Collapse.Panel;
 const Option = Select.Option;
 
-const formItemLayout = {
+const fLayout = {
     labelCol: {
       xs: { span: 24 },
-      sm: { span: 8 },
+      sm: { span: 10 },
     },
     wrapperCol: {
       xs: { span: 24 },
-      sm: { span: 16 },
+      sm: { span: 14 },
     },
 };
 
@@ -29,6 +32,8 @@ class TableEdit extends PureComponent {
         };
         this.setColumnMaxIndex(props);
         this.onSubmit = this.onSubmit.bind(this);
+        this.onAddOperation = this.onAddOperation.bind(this);
+        this.onDeleteOperation = this.onDeleteOperation.bind(this);
         this.onAddColumn = this.onAddColumn.bind(this);
         this.onDeleteColumn = this.onDeleteColumn.bind(this);
     }
@@ -38,14 +43,166 @@ class TableEdit extends PureComponent {
                 configs: nextProps.configs,
             });
             this.setColumnMaxIndex(nextProps);
+            this.setOperationMaxIndex(nextProps);
         }
     }
     setColumnMaxIndex({ configs }) {
         const { columns = [] } = configs;
         this.columnMaxIndex = columns.length || 0;
     }
+    setOperationMaxIndex({ configs }) {
+        const { operationArr = [] } = configs;
+        this.operationMaxIndex = operationArr.length || 0;
+    }
     addColumnMaxIndex() {
         this.columnMaxIndex += 1;
+    }
+    addOperationMaxIndex() {
+        this.operationMaxIndex += 1;
+    }
+    onAddOperation() {
+        const { configs } = this.state;
+        const { operationArr = [] } = configs;
+        const newOperationArr = operationArr.slice();
+        const opreationIndex = this.operationMaxIndex;
+        newOperationArr.push({
+            opText: "操作",
+            index: opreationIndex,
+        });
+        this.setState({
+            configs: this.getNewConfigs('operationArr', newOperationArr),
+        });
+        this.addOperationMaxIndex();
+    }
+    onAddColumn() {
+        const { configs } = this.state;
+        const { columns } = configs;
+        const newColumns = columns.slice();
+        const columnIndex = this.columnMaxIndex;
+        newColumns.push({
+            title: `column${columnIndex}`,
+            dataIndex: `dataIndex${columnIndex}`,
+            index: columnIndex,
+        });
+        this.setState({
+            configs: this.getNewConfigs('columns', newColumns),
+        });
+        this.addColumnMaxIndex();
+    }
+    onDeleteOperation(index) {
+        const { configs } = this.state;
+        const { operationArr } = configs;
+        const newOperationArr = operationArr.reduce((arr, item) => {
+            if (item.index !== index) {
+                arr.push(Object.assign({}, item));
+            }
+            return arr;
+        }, []);
+        const newConfigs = Object.assign({}, configs);
+        newConfigs.operationArr = newOperationArr;
+        this.setState({
+            configs: this.getNewConfigs('operationArr', newOperationArr),
+        });
+    }
+    onDeleteColumn(columnIndex) {
+        const { configs } = this.state;
+        const { columns } = configs;
+        const newColumns = columns.reduce((arr, item) => {
+            if (item.index !== columnIndex) {
+                arr.push(Object.assign({}, item));
+            }
+            return arr;
+        }, []);
+        const newConfigs = Object.assign({}, configs);
+        newConfigs.columns = newColumns;
+        this.setState({
+            configs: this.getNewConfigs('columns', newColumns),
+        });
+    }
+    getNewConfigs(k, v) {
+        const { configs } = this.state;
+        const newConfigs = Object.assign({}, configs);
+        newConfigs[k] = v;
+        return newConfigs;
+    }
+    onSubmit(e) {
+        e.preventDefault();
+        this.props.form.validateFields((err, values) => {
+            if (!err) {
+                const newConfigs = {};
+                const { configs } = this.state;
+                // 有操作列
+                if (values.hasOperation === TRUE) {
+                    const { operationArr } = configs;
+                    const newOperationArr = [];
+                    for (let i = 0; i< operationArr.length; i++) {
+                        const { index } = operationArr[i];
+                        const opText = values[`opText-${index}`];
+                        const opType = values[`opType-${index}`];
+                        newOperationArr.push({
+                            opText,
+                            opType,
+                            index: i,
+                        });
+                        delete values[opText];
+                        delete values[opType];
+                    }
+                    newConfigs.operationArr = newOperationArr;
+                }
+                const newColumns = configs.columns.slice();
+                Object.keys(values).forEach((k) => {
+                    const val = values[k];
+                    // 列数据
+                    if (k.indexOf('-') > 0) {
+                        const [ columnName, columnIndex ] = k.split('-');
+                        const columnTarget = newColumns.find((item) => {
+                            return item.index === +columnIndex;
+                        });
+                        if (columnTarget) {
+                            columnTarget[columnName] = val;
+                            if (columnName === 'width' && !val) {
+                                delete columnTarget.width;
+                            }
+                            if (columnName === 'fixed') {
+                                columnTarget[columnName] = DIR[val];
+                            }
+                        }
+                    } else {
+                        if (k === 'pagination') {
+                            if (val === TRUE) {
+                                newConfigs.pagination = {
+                                    pageSize: values.pageSize,
+                                    pageSizeOptions: values.pageSizeOptions.split(','),
+                                };
+                            } else {
+                                newConfigs[k] = DIR[val];
+                            }
+                        } else if (k === 'rowSelection') {
+                            if (val === TRUE) {
+                                newConfigs.rowSelection = {
+                                    type: values.type,
+                                };
+                                if (values.type === 'radio') {
+                                    newConfigs.rowSelection.columnTitle = values.columnTitle;
+                                }
+                            } else {
+                                newConfigs[k] = null;
+                            }
+                        } else {
+                            newConfigs[k] = val;
+                        }
+                    }
+                });
+                delete newConfigs.pageSize;
+                delete newConfigs.pageSizeOptions;
+                delete newConfigs.type;
+                delete newConfigs.columnTitle;
+
+                newConfigs.columns = newColumns;
+                handleOperation(newConfigs);
+                this.props.onUpdateConfigs(newConfigs);
+            }
+          });
     }
     renderPanelHeader({ title, index }) {
         return (
@@ -61,6 +218,20 @@ class TableEdit extends PureComponent {
             </div>
         );
     }
+    renderOperationHeader({ opText, index }) {
+        return (
+            <div className="panel-header">
+                <span className="title">{opText}</span>
+                <Icon
+                    type="close"
+                    className="btn-delete"
+                    onClick={() => {
+                        this.onDeleteOperation(index);
+                    }}
+                />
+            </div>
+        );
+    }
     renderCollapse() {
         const { form } = this.props;
         const { configs } = this.state;
@@ -71,6 +242,9 @@ class TableEdit extends PureComponent {
                 {
                     columns.map((item, i) => {
                         const { title, index, dataIndex, width, align = 'left', fixed = false } = item;
+                        if (title === '操作' && i === columns.length -1) {
+                            return null;
+                        }
                         return (
                             <Panel header={this.renderPanelHeader(item)} key={`${title}-${index}`}>
                                 <Form.Item label="title" {...formItemLayout}>
@@ -130,13 +304,72 @@ class TableEdit extends PureComponent {
         const { form } = this.props;
         const { configs } = this.state;
         const { getFieldDecorator } = form;
-        const { pagination, rowSelection } = configs;
+        const {  operationArr = [], pagination, rowSelection, hasOperation = '0', mockData = 0 } = configs;
         const { pageSize = 10, pageSizeOptions = '10,20,30' } = pagination || {};
         const { type = 'checkbox', columnTitle = '选择' } = rowSelection || {};
         const hasPagination = Object.keys(pagination || {}).length > 0 ? "1" : "0";
         const hasRowSelection = Object.keys(rowSelection || {}).length > 0 ? "1" : "0";
         return (
             <Fragment>
+                <Form.Item label="操作列" {...formItemLayout}>
+                    {getFieldDecorator("hasOperation", { 
+                        initialValue: hasOperation,
+                    })(
+                        <Select>
+                            <Option value="0">无</Option>
+                            <Option value="1">有</Option>
+                        </Select>
+                    )}
+                </Form.Item>
+                {
+                    form.getFieldValue('hasOperation') === '1' ?
+                        [
+                            <Collapse key="op-collapse">
+                                {
+                                    operationArr.map((item) => {
+                                        const { index, opText, opType } = item;
+                                        return (
+                                            <Panel header={this.renderOperationHeader(item)} key={`op-${index}`}>
+                                                <Form.Item label="文字" {...formItemLayout}>
+                                                    {getFieldDecorator(`opText-${index}`, { 
+                                                        initialValue: opText,
+                                                    })(
+                                                        <Input />
+                                                    )}
+                                                </Form.Item>
+                                                <Form.Item label="类型" {...formItemLayout}>
+                                                    {getFieldDecorator(`opType-${index}`, { 
+                                                        initialValue: opType,
+                                                    })(
+                                                        <Select>
+                                                            <Option value="edit">编辑</Option>
+                                                            <Option value="view">查看</Option>
+                                                            <Option value="delete">删除</Option>
+                                                            <Option value="other">其他</Option>
+                                                        </Select>
+                                                    )}
+                                                </Form.Item>
+                                            </Panel>
+                                        );
+                                    })
+                                }
+                            </Collapse>,
+                            <Fragment key="op-collapse-btns">
+                                {
+                                    form.getFieldValue('hasOperation') === '1' ?
+                                        (<div className="btn-add-box">
+                                            <Button
+                                                type="dashed"
+                                                size="large"
+                                                onClick={this.onAddOperation}
+                                            >
+                                                添加操作项
+                                            </Button>
+                                        </div>) : null
+                                }
+                            </Fragment>
+                        ] : null
+                }
                 <Form.Item label="pagination" {...formItemLayout}>
                     {getFieldDecorator("pagination", { 
                         initialValue: hasPagination,
@@ -157,7 +390,7 @@ class TableEdit extends PureComponent {
                                 <Input />
                             )}
                         </Form.Item>
-                        <Form.Item label="pageSizeOptions" {...formItemLayout}>
+                        <Form.Item label="pageSizeOptions" {...fLayout}>
                             {getFieldDecorator("pageSizeOptions", { 
                                 initialValue: Array.isArray(pageSizeOptions)
                                     ? pageSizeOptions.join(',') : pageSizeOptions,
@@ -206,108 +439,18 @@ class TableEdit extends PureComponent {
                         }
                     </Card> : null
                 }
+                <Form.Item label="模拟数据" {...formItemLayout}>
+                    {getFieldDecorator("mockData", {
+                        initialValue: mockData,
+                    })(
+                        <Input placeholder="请输入数据条数" />
+                    )}
+                </Form.Item>
             </Fragment>
         );
     }
-    onAddColumn() {
-        const { configs } = this.state;
-        const { columns } = configs;
-        const newColumns = columns.slice();
-        const columnIndex = this.columnMaxIndex;
-        newColumns.push({
-            title: `column${columnIndex}`,
-            dataIndex: `dataIndex${columnIndex}`,
-            index: columnIndex,
-        });
-        this.setState({
-            configs: this.getNewConfigs('columns', newColumns),
-        });
-        this.addColumnMaxIndex();
-    }
-    onDeleteColumn(columnIndex) {
-        const { configs } = this.state;
-        const { columns } = configs;
-        const newColumns = columns.reduce((arr, item) => {
-            if (item.index !== columnIndex) {
-                arr.push(Object.assign({}, item));
-            }
-            return arr;
-        }, []);
-        const newConfigs = Object.assign({}, configs);
-        newConfigs.columns = newColumns;
-        this.setState({
-            configs: this.getNewConfigs('columns', newColumns),
-        });
-    }
-    getNewConfigs(k, v) {
-        const { configs } = this.state;
-        const newConfigs = Object.assign({}, configs);
-        newConfigs[k] = v;
-        return newConfigs;
-    }
-    onSubmit(e) {
-        e.preventDefault();
-        this.props.form.validateFields((err, values) => {
-            if (!err) {
-                const newConfigs = {};
-                const { configs } = this.state;
-                const newColumns = configs.columns.slice();
-                Object.keys(values).forEach((k) => {
-                    const val = values[k];
-                    // 列数据
-                    if (k.indexOf('-') > 0) {
-                        const [ columnName, columnIndex ] = k.split('-');
-                        const columnTarget = newColumns.find((item) => {
-                            return item.index === +columnIndex;
-                        });
-                        if (columnTarget) {
-                            columnTarget[columnName] = val;
-                            if (columnName === 'width' && !val) {
-                                delete columnTarget.width;
-                            }
-                            if (columnName === 'fixed') {
-                                columnTarget[columnName] = DIR[val];
-                            }
-                        }
-                    } else {
-                        if (k === 'pagination') {
-                            if (val === '1') {
-                                newConfigs.pagination = {
-                                    pageSize: values.pageSize,
-                                    pageSizeOptions: values.pageSizeOptions.split(','),
-                                };
-                            } else {
-                                newConfigs[k] = DIR[val];
-                            }
-                        } else if (k === 'rowSelection') {
-                            if (val === '1') {
-                                newConfigs.rowSelection = {
-                                    type: values.type,
-                                };
-                                if (values.type === 'radio') {
-                                    newConfigs.rowSelection.columnTitle = values.columnTitle;
-                                }
-                            } else {
-                                newConfigs[k] = null;
-                            }
-                        } else {
-                            newConfigs[k] = val;
-                        }
-                    }
-                });
-
-                delete newConfigs.pageSize;
-                delete newConfigs.pageSizeOptions;
-                delete newConfigs.type;
-                delete newConfigs.columnTitle;
-
-                newConfigs.columns = newColumns;
-                this.props.onUpdateConfigs(newConfigs);
-            }
-          });
-    }
     render() {
-        const { visible, onClose } = this.props;
+        const { visible, onClose, onDeleteContainer } = this.props;
         return (
             <Drawer
                 title="表格编辑"
@@ -330,7 +473,14 @@ class TableEdit extends PureComponent {
                     <Divider>表格属性</Divider>
                     {this.renderTableProps()}
                     <Form.Item style={{ marginTop: '20px', textAlign: 'center' }}>
-                        <Button type="primary" htmlType="submit">确定</Button>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            style={{ marginRight: '10px' }}
+                        >
+                            确定
+                        </Button>
+                        <Button onClick={onDeleteContainer}>删除容器</Button>
                     </Form.Item>
                 </Form>
             </Drawer>

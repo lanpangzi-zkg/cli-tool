@@ -50,11 +50,8 @@ class DragTabs extends Component {
 			    <TabPane tab="布局" key="layout">
                     <TargetFactory tabType="layout" />
 			    </TabPane>
-			    <TabPane tab="表单" key="form">
+			    <TabPane tab="组件" key="component">
                     <TargetFactory />
-			    </TabPane>
-			    <TabPane tab="模板" key="template">
-                    <TargetFactory tabType="template" />
 			    </TabPane>
 		  	</Tabs>
 		);

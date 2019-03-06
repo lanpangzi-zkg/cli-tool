@@ -1,0 +1,26 @@
+.drop-container {
+    position: relative;
+    display: flex;
+    vertical-align: bottom;
+    width: 100%;
+    min-height: inherit;
+    border: none;
+    align-items: center;
+}
+.drop-container>div {
+    width: 100%;
+}
+.drop-container .ant-tabs-bar {
+    margin-bottom: 0;
+}
+.drop-container:hover {
+    border-color: #1890ff;
+}
+.drop-container:hover>.icon-operation {
+    display: block;
+}
+.container .drop-container>.icon-operation {
+    right: 0;
+    top: 0;
+    display: none;
+}

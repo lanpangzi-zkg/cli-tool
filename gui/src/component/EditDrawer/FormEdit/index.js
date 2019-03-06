@@ -1,23 +1,25 @@
 import React, { Component } from 'react';
 import { Button, Divider, message, Form, Input, Select, Drawer } from 'antd';
+import formItemLayout from '../../configs/layout';
 import './index.css';
 
 const Option = Select.Option;
-const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 8 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 16 },
-    },
-};
 
 class FormEdit extends Component {
     constructor(props) {
         super(props);
         this.handleSubmit = this.handleSubmit.bind(this);
+        this.handleChange = this.handleChange.bind(this);
+    }
+    handleChange(value) {
+        const colSpanValues = {};
+        const val = 24 / value;
+        for(let i = 0; i < value; i++) {
+            colSpanValues[`colSpan-${i}`] = val;
+        }
+        setTimeout(() => {
+            this.props.form.setFieldsValue(colSpanValues);
+        }, 0);
     }
     handleSubmit(e) {
         e.preventDefault();
@@ -71,7 +73,7 @@ class FormEdit extends Component {
         return componentArr;
     }
     render() {
-        const { visible, form, onClose } = this.props;
+        const { visible, form, onClose, onDeleteContainer } = this.props;
         const { getFieldDecorator } = form;
         return (
             <Drawer
@@ -96,7 +98,7 @@ class FormEdit extends Component {
                                 { required: true, message: '请选择列数!' },
                             ],
                         })(
-                            <Select>
+                            <Select onChange={this.handleChange}>
                                 <Option value="2">2</Option>
                                 <Option value="3">3</Option>
                                 <Option value="4">4</Option>
@@ -111,10 +113,11 @@ class FormEdit extends Component {
                         <Button
                             type="primary"
                             htmlType="submit"
-                            style={{ textAlign: 'center' }}
+                            style={{ marginRight: '10px' }}
                         >
                             确定
                         </Button>
+                        <Button onClick={onDeleteContainer}>删除容器</Button>
                     </div>
                 </Form>
             </Drawer>

@@ -43,13 +43,13 @@
 
 .container {
   position: relative;
-  margin: 16px 24px 24px;
+  /* margin: 24px; */
 }
 
-.container .icon-operation {
+.container .icon-operation, .fulu-cell-box .icon-operation {
   position: absolute;
-  right: 18px;
-  top: 8px;
+  right: 0;
+  top: 0;
   display: none;
   font-size: 14px;
 }
@@ -57,7 +57,7 @@
   top: -6px;
   right: -6px;
 }
-.container:hover .icon-operation {
+.container:hover .icon-operation, .fulu-cell-box:hover .icon-operation {
   display: block;
 }
 

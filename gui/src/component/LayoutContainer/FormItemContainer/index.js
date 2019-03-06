@@ -1,18 +1,24 @@
 import React, { PureComponent } from 'react';
-import { Icon } from 'antd';
-import Editable from '../../Core/Editable';
+import { Icon, message } from 'antd';
+import DragRender from '../../Core/DragRender';
 import FormItemEdit from '../../EditDrawer/FormItemEdit';
 import { activeColor } from '../../common/Constants';
 import './index.css';
 
-const clsName = 'drop-container';
+const clsName = 'form-drop-container';
+const forbiddenDropType = ['Breadcrumb', 'Text', 'Tabs'];
 
 class FormItemContainer extends PureComponent {
     constructor(props) {
         super(props);
         this.state = {
             dropComponent: false, // 是否放入了组件
-            formItemConfig: { colSpan: props.colSpan }, // 组件配置信息
+            formItemConfig: {
+                colSpan: props.colSpan,
+                colIndex: props.colIndex,
+                originSpan: props.originSpan,
+                cellStyles: props.cellStyles || {},
+            }, // 组件配置信息
             visible: false,
         };
         this.onUpdateConfig = this.onUpdateConfig.bind(this);
@@ -23,9 +29,14 @@ class FormItemContainer extends PureComponent {
         this.onClose = this.onClose.bind(this);
     }
     componentWillReceiveProps(nextProps) {
-        if (nextProps.colSpan !== this.props.colSpan) {
+        if (nextProps.colSpan !== this.props.colSpan || nextProps.colIndex !== this.props.colIndex) {
             const newformItemConfig = Object.assign({},
-                this.state.formItemConfig, { colSpan: nextProps.colSpan });
+                this.state.formItemConfig, {
+                    colSpan: nextProps.colSpan,
+                    colIndex: nextProps.colIndex,
+                    originSpan: nextProps.originSpan,
+                    cellStyles: nextProps.cellStyles,
+                });
             this.setState({
                 formItemConfig: newformItemConfig,
             });
@@ -39,12 +50,19 @@ class FormItemContainer extends PureComponent {
     onDrop(event) {
         event.preventDefault();
         if (event.target.className === clsName) {
+            this.resetBg();
             const data = JSON.parse(event.dataTransfer.getData('text/plain'));
             const { type } = data;
+            if (~forbiddenDropType.indexOf(type)) {
+                message.warn('当前容器不支持拖拽的组件!');
+                return;
+            }
             const { colIndex, onUpdateConfigs } = this.props;
             const formItemConfig = {
                 type,
                 colSpan: this.props.colSpan,
+                originSpan: this.props.originSpan,
+                cellStyles: this.props.cellStyles,
                 label: 'label',
                 name: `name-${colIndex}`,
                 colIndex,
@@ -52,7 +70,6 @@ class FormItemContainer extends PureComponent {
             if (type === 'Button') {
                 delete formItemConfig.label;
                 delete formItemConfig.name;
-                delete formItemConfig.colSpan;
                 formItemConfig.type = 'Btn';
                 formItemConfig.btnArr = [{
                     btnText: 'button',
@@ -66,11 +83,10 @@ class FormItemContainer extends PureComponent {
             }, () => {
                 onUpdateConfigs(formItemConfig);
             });
-            this.resetBg();
         }
     }
     /**
-     * @desc  删除col组件配置项
+     * @desc  删除单元格
      * @param {object} e 
      */
     onDeleteCol(e) {
@@ -78,7 +94,11 @@ class FormItemContainer extends PureComponent {
         const { onUpdateConfigs, colIndex } = this.props;
         const { formItemConfig } = this.state;
         this.setState({
-            formItemConfig: { colSpan: formItemConfig.colSpan },
+            formItemConfig: {
+                colSpan: formItemConfig.colSpan,
+                originSpan: formItemConfig.originSpan,
+                colIndex,
+            },
             dropComponent: false,
         });
         onUpdateConfigs({ colIndex, deleteFlag: true });
@@ -112,10 +132,13 @@ class FormItemContainer extends PureComponent {
     onUpdateConfig(config) {
         const { formItemConfig } = this.state;
         let newformItemConfig = null;
+        // 删除单元格内的组件
         if (config.deleteFlag) {
             newformItemConfig = {
                 colIndex: config.colIndex,
                 colSpan: config.colSpan,
+                originSpan: config.originSpan,
+                cellStyles: config.cellStyles,
             }
         } else {
             newformItemConfig = Object.assign({}, formItemConfig, config);
@@ -147,20 +170,21 @@ class FormItemContainer extends PureComponent {
     }
     render() {
         const { dropComponent, formItemConfig = {}, visible } = this.state;
-        const { layoutColumn, onDeleteFormItemContainer, colIndex } = this.props;
+        const { layoutColumn, onDeleteFormItemContainer, colIndex, configs } = this.props;
         const colIndexNum = + colIndex;
-        const colSpan = (formItemConfig && formItemConfig.colSpan) || 24 / layoutColumn;
+        const _colSpan = Object.hasOwnProperty.call(formItemConfig, 'colSpan') ? 
+            formItemConfig.colSpan : (24 / layoutColumn);
         return (
             <div
                 className={clsName}
                 style={{
-                    width: this.getContainerWidth(colSpan, layoutColumn),
+                    width: this.getContainerWidth(_colSpan, layoutColumn),
                 }}
                 ref={(targetDom) => { this.targetDom = targetDom; }}
             >
                 {
                   dropComponent ? (
-                        <Editable
+                        <DragRender
                             {...this.props}
                             formItemConfig={formItemConfig}
                         />
@@ -175,7 +199,9 @@ class FormItemContainer extends PureComponent {
                     visible={visible}
                     onDelete={this.onDeleteCol}
                     onUpdateConfigs={this.onUpdateConfig}
-                    formItemConfig={formItemConfig}
+                    colSpanArr={configs.colSpanArr}
+                    formItemArr={configs.formItemArr}
+                    dropConfig={formItemConfig}
                     dropComponent={dropComponent}
                     layoutColumn={layoutColumn}
                     onDeleteFormItemContainer={() => {
