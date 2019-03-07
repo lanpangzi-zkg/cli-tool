@@ -1,7 +1,6 @@
 import React, { Component, Fragment } from 'react';
-import { Button, Icon, Form, Col } from 'antd';
-import renderComponent from '../../component/common/RenderUtil';
-import { TRUE } from '../common/Constants';
+import { Form, Col } from 'antd';
+import renderComponent, { renderExpandBtn } from '../../component/common/RenderUtil';
 import moment  from 'moment';
 
 class DragRender extends Component {
@@ -18,51 +17,14 @@ class DragRender extends Component {
                 itemComponent =renderComponent(itemConfig);
                 break;
             case 'Btn':
-                itemComponent = this.renderBtn(itemConfig);
+                const { expand, onCollapse } = this.props;
+                itemComponent = renderExpandBtn(itemConfig, expand, onCollapse);
                 break;
             default:
                 itemComponent =renderComponent(itemConfig);
                 break;
         }
         return itemComponent;
-    }
-    renderBtn = (itemConfig) => {
-        const { btnArr } = itemConfig;
-        return (
-            <Fragment>
-                {
-                    btnArr.map((btn) => {
-                        const { btnText = 'button', expandFlag, expandCount,
-                            style = {}, index, ...btnProps } = btn;
-                        if (expandFlag === TRUE) {
-                            const { expand, onCollapse } = this.props;
-                            const collapseBtnText = expand ? '隐藏' : '展开';
-                            return (
-                                <a
-                                    className="btn-collapse"
-                                    onClick={onCollapse}
-                                    href="&nbsp;"
-                                    key={`btn-${index}`}
-                                    style={style}
-                                >
-                                    {collapseBtnText}
-                                    <Icon type={expand ? 'up' : 'down'} />
-                                </a>
-                                );
-                        }
-                        return (
-                            <Button
-                                key={`btn-${index}`}
-                                style={style}
-                                {...btnProps}
-                            >
-                                {btnText}
-                            </Button>
-                        );
-                    })
-                }
-            </Fragment>
-        );
     }
 
     getInitialValue(formItemConfig) {
@@ -92,7 +54,7 @@ class DragRender extends Component {
 			<Fragment>
 				<Col
 			        span={colSpan}
-			        md={md} sm={24}
+                    md={md} sm={24}
 			    >
                     {
                         type !== 'Btn' ?

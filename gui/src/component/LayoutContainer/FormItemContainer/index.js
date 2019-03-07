@@ -11,14 +11,19 @@ const forbiddenDropType = ['Breadcrumb', 'Text', 'Tabs'];
 class FormItemContainer extends PureComponent {
     constructor(props) {
         super(props);
+        const { configs } = props;
+        const { formItemArr } = configs;
+        const formItemConfig = formItemArr.find((formItem) => {
+            return formItem.colIndex === props.colIndex;
+        });
         this.state = {
-            dropComponent: false, // 是否放入了组件
-            formItemConfig: {
+            dropComponent: formItemConfig ? true : false, // 是否放入了组件
+            formItemConfig: Object.assign({}, {
                 colSpan: props.colSpan,
                 colIndex: props.colIndex,
                 originSpan: props.originSpan,
                 cellStyles: props.cellStyles || {},
-            }, // 组件配置信息
+            }, formItemConfig || {}), // 组件配置信息
             visible: false,
         };
         this.onUpdateConfig = this.onUpdateConfig.bind(this);
@@ -63,7 +68,7 @@ class FormItemContainer extends PureComponent {
                 colSpan: this.props.colSpan,
                 originSpan: this.props.originSpan,
                 cellStyles: this.props.cellStyles,
-                label: 'label',
+                label: type,
                 name: `name-${colIndex}`,
                 colIndex,
             };
@@ -116,9 +121,15 @@ class FormItemContainer extends PureComponent {
             event.target.style.background = activeColor;
         }
     }
+    onDragLeave(event) {
+        if (event.target.className === clsName) {
+            event.target.style.background = '';
+        }
+    }
     componentWillUnmount() {
         if (this.targetDom) {
             this.targetDom.removeEventListener('drop', this.onDrop);
+            this.targetDom.removeEventListener('dragleave', this.onDragLeave);
             this.targetDom.removeEventListener("dragenter", this.onDragenter);
         }
     }
@@ -127,6 +138,7 @@ class FormItemContainer extends PureComponent {
             return;
         }
         this.targetDom.addEventListener("drop", this.onDrop, false);
+        this.targetDom.addEventListener("dragleave", this.onDragLeave, false);
         this.targetDom.addEventListener("dragenter", this.onDragenter, false);
     }
     onUpdateConfig(config) {

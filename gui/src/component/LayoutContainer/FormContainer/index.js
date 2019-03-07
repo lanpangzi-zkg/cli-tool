@@ -4,12 +4,14 @@ import FormEdit from '../../EditDrawer/FormEdit';
 import getCellColSpan from '../../common/CellUtil';
 import FormItemContainer from '../FormItemContainer';
 import './index.css';
+import { TRUE } from '../../common/Constants';
 
 class FormContainer extends PureComponent {
     constructor(props) {
         super(props);
         this.state = {
             visible: false,
+            expand: false, // 是否展开
             configs: {
                 layoutColumn: 1, // 容器列数
                 formItemArr: [],
@@ -24,12 +26,18 @@ class FormContainer extends PureComponent {
         this.onDeleteContainer = this.onDeleteContainer.bind(this);
         this.onDeleteFormItemContainer = this.onDeleteFormItemContainer.bind(this);
         this.onUpdateConfigs = this.onUpdateConfigs.bind(this);
+        this.onCollapse = this.onCollapse.bind(this);
         this.colIndexStart = 0;
     }
     onShowEditForm() {
         this.setState({
             visible: true,
+            expand: false,
         });
+    }
+    onCollapse() {
+        const { expand } = this.state;
+        this.setState({ expand: !expand });
     }
     addNewFormItem(formItemArr, layoutColumnNum, colSpanArr) {
         if (formItemArr.length < layoutColumnNum) {
@@ -194,26 +202,43 @@ class FormContainer extends PureComponent {
                     newFormItemArr, colSpanArr);
             }
         });
+        const newState = {};
+        if (values.type === 'Btn') {
+            const { btnArr } = values;
+            const expendBtn = btnArr.find((item) => {
+                return item.expandFlag === TRUE;
+            });
+            if (expendBtn) {
+                newState.expandCount = + expendBtn.expandCount;
+            } else {
+                newState.expandCount = 0;
+            }
+        }
         newConfigs.formItemArr = newFormItemArr;
-        this.setState({
-            configs: newConfigs,
-        }, () => {
+        newState.configs = newConfigs;
+        this.setState({...newState}, () => {
             onUpdateLayoutConfig({ layoutIndex, configs: newConfigs });
         });
     }
     renderFormItemContainer() {
-        const { configs } = this.state;
+        const { configs, expand, expandCount } = this.state;
         const { formItemArr, layoutColumn } = configs;
-        return formItemArr.map(({ colIndex, colSpan, originSpan, cellStyles }) => {
+        return formItemArr.map(({ colIndex, colSpan, originSpan, cellStyles, type }, i) => {
+            // 隐藏组件
+            if (expandCount > 0 && !expand && (i+1) > expandCount && type !== 'Btn') {
+                return null;
+            }
             return (
                 <FormItemContainer
                     key={`ed-${colIndex}`}
                     colIndex={colIndex}
                     {...this.props}
                     colSpan={colSpan}
+                    expand={expand}
                     originSpan={originSpan}
                     layoutColumn={layoutColumn}
                     cellStyles={cellStyles}
+                    onCollapse={this.onCollapse}
                     onDeleteFormItemContainer={this.onDeleteFormItemContainer}
                     onUpdateConfigs={this.onUpdateConfigs}
                 />

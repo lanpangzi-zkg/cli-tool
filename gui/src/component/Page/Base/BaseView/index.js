@@ -254,7 +254,7 @@ class BaseView extends PureComponent {
                                 <a
                                     className="btn-collapse"
                                     onClick={this.onCollapse}
-                                    href="&nbsp;"
+                                    href="javascript:void(0);"
                                     key={`btn-${index}`}
                                 >
                                     {collapseBtnText}

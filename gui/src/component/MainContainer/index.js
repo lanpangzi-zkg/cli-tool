@@ -46,19 +46,6 @@ class MainContainer extends PureComponent {
 		});
 	}
 	componentDidMount() {
-		if (window.ipc && window.ipc.on) {
-            window.ipc.on('asynchronous-reply', (event, arg) => {
-				const { code, info } = JSON.parse(arg);
-				if (code === 1) {
-					message.success(info);
-				} else {
-					message.error(info);
-				}
-				this.setState({
-					generateLoading: false,
-				});
-            });
-        }
 		document.addEventListener("drop", (event) => {
 			event.preventDefault();
 			const cls = event.target.className;
@@ -102,7 +89,33 @@ class MainContainer extends PureComponent {
 			pageName,
 			layoutConfig,
 		};
-		
+		const extraData = {};
+		layoutConfig.forEach((item) => {
+			if (item.type === FORM_CONTAINER) {
+				extraData.hasForm = true;
+				const { configs } = item;
+				const { formItemArr = [] } = configs || {};
+				formItemArr.forEach((formItem) => {
+					if (formItem.type === 'Btn') {
+						extraData.hasBtn = true;
+						const { btnArr = [] } = formItem;
+						const expandBtn = btnArr.find((btnItem) => {
+							return btnItem.expandFlag === '1';
+						});
+						if (expandBtn) {
+							extraData.hasExpand = true;
+							extraData.expandCount = expandBtn.expandCount;
+						}
+					} else if (formItem.type) {
+						extraData[`has${formItem.type}`] = true;	
+					}
+				});
+			}
+			if (item.type === TABLE_CONTAINER) {
+				extraData.hasTable = true;
+			}
+		});
+		pageConfig.extraData = extraData;
 		this.setState({
 			generateLoading: true,
 		});
@@ -126,12 +139,10 @@ class MainContainer extends PureComponent {
         })
         .catch((error) => {
 			message.error('请求失败');
-			console.log(error);
 			this.setState({
 				generateLoading: false,
 			});
         });
-        // window.ipc.send('asynchronous-message', JSON.stringify(pageConfig));
 	}
 	onPreviewPage() {
 		const { onPreviewPage } = this.props;

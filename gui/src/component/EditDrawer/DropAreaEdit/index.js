@@ -11,7 +11,7 @@ const { TextArea } = Input;
 
 class DropAreaEdit extends BaseEdit {
 	getItemSetType() {
-		return ['Tabs', 'Breadcrumb'];
+		return ['Tabs', 'Breadcrumb', 'Btn'];
 	}
 	renderBtnCard() {
 		const { dropConfig, form } = this.props;
@@ -27,7 +27,7 @@ class DropAreaEdit extends BaseEdit {
 				>
 					<Collapse>
 					{
-						btnArr.map((item) => {
+						Array.isArray(btnArr) ? btnArr.map((item) => {
 							const { index, btnText, type, htmlType = 'button',
 								onClick, btnStyle } = item;
 							return (
@@ -98,7 +98,7 @@ class DropAreaEdit extends BaseEdit {
 									</Form.Item>
 								</Panel>
 							);
-						})
+						}) : null
 					}
 					</Collapse>
 				</Card>

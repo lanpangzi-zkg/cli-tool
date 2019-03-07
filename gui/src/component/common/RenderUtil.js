@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Button, Checkbox, Input, Tabs, Select, DatePicker, Breadcrumb, Radio } from 'antd';
+import { Button, Checkbox, Input, Icon, Tabs, Select, DatePicker, Breadcrumb, Radio } from 'antd';
 
 const CheckboxGroup = Checkbox.Group;
 const { Option } = Select;
@@ -103,7 +103,7 @@ const renderTabs = (config) => {
                 }) : null
             }
         </Tabs>
-  );
+   );
 };
 const renderCheckbox = (config) => {
     const { style = {}, checkboxArr = [] } = config;
@@ -174,4 +174,47 @@ const renderBtn = (itemConfig) => {
     );
 }
 
+const renderExpandBtn = (config, expand, onCollapse) => {
+    const { btnArr } = config;
+        return (
+            <Fragment>
+                {
+                    btnArr.map((btn) => {
+                        const { btnText = 'button', type, index, props,
+                            style = {}, expandFlag = '0' } = btn;
+                        if (expandFlag === '1') {
+                            const collapseBtnText = expand ? '隐藏' : '展开';
+                            return (
+                                <a
+                                    className="btn-collapse"
+                                    onClick={onCollapse}
+                                    href="javascript:void(0);"
+                                    style={style}
+                                    key={`btn-${index}`}
+                                >
+                                    {collapseBtnText}
+                                    <Icon type={expand ? 'up' : 'down'} />
+                                </a>
+                                );
+                        }
+                        return (
+                            <Button
+                                key={`btn-${index}`}
+                                type={type}
+                                style={style}
+                                {...props}
+                            >
+                                {btnText}
+                            </Button>
+                        );
+                    })
+                }
+            </Fragment>
+        );
+};
+
 export default renderComponent;
+
+export {
+    renderExpandBtn,
+};

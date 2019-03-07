@@ -1,7 +1,7 @@
-import React, { PureComponent, Fragment } from 'react';
-import { Form, Table, Col, Row, Input, Icon, Button } from 'antd';
+import React, { PureComponent } from 'react';
+import { Form, Table, Col, Row } from 'antd';
 import moment  from 'moment';
-import renderComponent from '../../common/RenderUtil';
+import renderComponent, { renderExpandBtn } from '../../common/RenderUtil';
 import 'antd/dist/antd.css';
 import '../assets/common.css';
 
@@ -10,7 +10,9 @@ const FormItem = Form.Item;
 class ViewGenerater extends PureComponent {
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {
+            expand: false,
+        };
         this.onSubmit = this.onSubmit.bind(this);
         this.onCollapse = this.onCollapse.bind(this);
     }
@@ -32,10 +34,9 @@ class ViewGenerater extends PureComponent {
                     // 拥有折叠按钮
                     if (expandBtn) {
                         this.state.expand = expandBtn.expand;
-                        this.state.expandCount = expandBtn.expandCount;
+                        this.state.expandCount = + expandBtn.expandCount;
                     }
                 }
-              
             }
         }
     }
@@ -46,7 +47,7 @@ class ViewGenerater extends PureComponent {
         return null;
     }
     onCollapse() {
-        const { expand } = this.state;
+        const { expand = false } = this.state;
         this.setState({ expand: !expand });
     }
     _onShowSizeChange(current, size) {
@@ -77,43 +78,24 @@ class ViewGenerater extends PureComponent {
             return null;
         }
         const copyFormItemArr = formItemArr.slice();
-        const singleIndex = copyFormItemArr.findIndex((item) => {
-            return item.singleRow;
-        });
-        const singleRowItem = copyFormItemArr[singleIndex];
-        // 是否有单独渲染的一行
-        if (singleIndex > -1) {
-            copyFormItemArr.splice(singleIndex, 1);
-        }
         return (
-            [<Row key="basic-row" gutter={{ md: 8, lg: 24, xl: 48 }}>
+            <Row key="basic-row" gutter={{ md: 8, lg: 24, xl: 48 }}>
                 {
                     this.renderCol(copyFormItemArr)
                 }
-            </Row>, singleRowItem ? (
-            <Row key="single-row">
-                <Col style={{ ...singleRowItem.style }}>
-                    <span className="btn-group-box">
-                        {
-                            this.renderBtn(singleRowItem)
-                        }
-                    </span>
-                </Col>
-            </Row>) : null]
+            </Row>
         );
     }
     renderCol(formItemArr) {
         const { form } = this.props;
         const { getFieldDecorator } = form;
         return formItemArr.map((config, i) => {
-            const { label, name, colSpan = 8, colIndex, type, cellStyles = {}, singleRow = false, hasLinkage } = config;
-            if (singleRow) {
-                return null;
-            }
+            const { label, name, colSpan = 8, colIndex, type, cellStyles = {}, hasLinkage } = config;
+            const { expand, expandCount } = this.state;
             if (type === 'Btn') {
                 return (<Col md={colSpan} sm={24} key={`col-${colIndex}`}>
                     <FormItem style={cellStyles}>
-                        {this.renderBtn(config)}
+                        {renderExpandBtn(config, expand, this.onCollapse)}
                     </FormItem>
                 </Col>);
             }
@@ -127,88 +109,23 @@ class ViewGenerater extends PureComponent {
                     return null;
                 }
             }
-            const displayStyle = {
-                display: 'block',
-            };
-            if (Object.hasOwnProperty.call(this.state, 'expand')) {
-                const { expand, expandCount } = this.state;
-                // 隐藏组件
-                if (!expand && (i+1) > expandCount) {
-                    displayStyle.display = 'none';
-                }
+            // 隐藏组件
+            if (expandCount > 0 && !expand && (i+1) > expandCount && type !== 'Btn') {
+                return null;
             }
             return (
-                <Col md={colSpan} sm={24} key={`col-${colIndex}`} style={displayStyle}>
+                <Col md={colSpan} sm={24} key={`col-${colIndex}`}>
                     <FormItem label={label} style={cellStyles}>
                         {getFieldDecorator(name, {
                             rules: [],
                             initialValue: this.getInitialValue(config),
                         })(
-                            this.renderItemComponent(config)
+                            renderComponent(config)
                         )}
                     </FormItem>
                 </Col>
             );
         });
-    }
-    renderItemComponent(config) {
-        const { type = 'Input' } = config;
-        let itemComponent = null;
-        switch(type) {
-            case 'Select':
-            case 'RangePicker':
-            case 'DatePicker':
-            case 'Radio':
-            case 'Checkbox':
-                itemComponent = renderComponent(config);
-                break;
-            case 'Btn':
-                itemComponent = this.renderBtn(config);
-                break;
-            default:
-                itemComponent = renderComponent(config);
-                break;
-        }
-        return itemComponent; 
-    }
-    renderBtn(config) {
-        const { btnArr } = config;
-        return (
-            <Fragment>
-                {
-                    btnArr.map((btn) => {
-                        const { btnText = 'button', type, index, props,
-                            style = {}, expandFlag = '0' } = btn;
-                        if (expandFlag === '1') {
-                            const { expand } = this.state;
-                            const collapseBtnText = expand ? '隐藏' : '展开';
-                            return (
-                                <a
-                                    className="btn-collapse"
-                                    onClick={this.onCollapse}
-                                    href="&nbsp;"
-                                    style={style}
-                                    key={`btn-${index}`}
-                                >
-                                    {collapseBtnText}
-                                    <Icon type={expand ? 'up' : 'down'} />
-                                </a>
-                                );
-                        }
-                        return (
-                            <Button
-                                key={`btn-${index}`}
-                                type={type}
-                                style={style}
-                                {...props}
-                            >
-                                {btnText}
-                            </Button>
-                        );
-                    })
-                }
-            </Fragment>
-        );
     }
     renderBoxCell(layoutColumn, cellsArr) {
         if (!layoutColumn) {

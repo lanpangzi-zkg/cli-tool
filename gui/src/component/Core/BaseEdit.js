@@ -92,7 +92,7 @@ class BaseEdit extends Component {
 							item.onClick = values[onClick];
 						}
 						const expandCount = `expandCount-${index}`;
-						if (expandFlag === TRUE) {
+						if (values[expandFlag] === TRUE) {
 							item.expandCount = values[expandCount];
 						}
 						delete newDropConfig[btnStyle];

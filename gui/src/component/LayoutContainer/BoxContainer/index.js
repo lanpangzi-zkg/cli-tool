@@ -66,7 +66,7 @@ class BoxContainer extends PureComponent {
         const width = `${100 / layoutColumn}%`;
         for (let i = 0; i < layoutColumn; i++) {
             componentArr.push((
-               <div className="cell" key={`cell-${i}`} style={{ width }}>
+               <div className="cell" key={`cell-${layoutColumn}-${i}`} style={{ width }}>
                     < DropContainer
                         dropIndex={i}
                         allowDropType={['Text', 'Breadcrumb', 'Button', 'Tabs']}

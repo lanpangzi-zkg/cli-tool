@@ -24,11 +24,13 @@ class DropContainer extends PureComponent {
             return;
         }
         this.DropDom.addEventListener("drop", this.onDrop, false);
+        this.DropDom.addEventListener("dragleave", this.onDragLeave, false);
         this.DropDom.addEventListener("dragenter", this.onDragenter, false);
     }
     componentWillUnmount() {
         if (this.DropDom) {
             this.DropDom.removeEventListener('drop', this.onDrop);
+            this.DropDom.removeEventListener('dragleave', this.onDragLeave);
             this.DropDom.removeEventListener("dragenter", this.onDragenter);
         }
     }
@@ -115,6 +117,11 @@ class DropContainer extends PureComponent {
     onDragenter(event) {
         if (event.target.className === clsName) {
             event.target.style.background = activeColor;
+        }
+    }
+    onDragLeave(event) {
+        if (event.target.className === clsName) {
+            event.target.style.background = '';
         }
     }
     render() {
